@@ -279,7 +279,9 @@ struct switch_media_handle_s {
 
 switch_srtp_crypto_suite_t SUITES[CRYPTO_INVALID] = {
 	{ "AEAD_AES_256_GCM_8", "", AEAD_AES_256_GCM_8, 44, 12},
+	{ "AEAD_AES_256_GCM", "", AEAD_AES_256_GCM, 44, 12},
 	{ "AEAD_AES_128_GCM_8", "", AEAD_AES_128_GCM_8, 28, 12},
+	{ "AEAD_AES_128_GCM", "", AEAD_AES_128_GCM, 28, 12},
 	{ "AES_256_CM_HMAC_SHA1_80", "AES_CM_256_HMAC_SHA1_80", AES_CM_256_HMAC_SHA1_80, 46, 14},
 	{ "AES_192_CM_HMAC_SHA1_80", "AES_CM_192_HMAC_SHA1_80", AES_CM_192_HMAC_SHA1_80, 38, 14},
 	{ "AES_CM_128_HMAC_SHA1_80", "", AES_CM_128_HMAC_SHA1_80, 30, 14},
@@ -1635,8 +1637,9 @@ static void switch_core_session_get_recovery_crypto_key(switch_core_session_t *s
 	} else return;
 
 	if ((tmp = switch_channel_get_variable(session->channel, keyvar))) {
-		if ((tmp = switch_channel_get_variable(session->channel, ctypevar))) {
-			engine->crypto_type = switch_core_media_crypto_str2type(tmp);
+		const char *ct;
+		if ((ct = switch_channel_get_variable(session->channel, ctypevar))) {
+			engine->crypto_type = switch_core_media_crypto_str2type(ct);
 		}
 
 		engine->ssec[engine->crypto_type].remote_crypto_key = switch_core_session_strdup(session, tmp);
@@ -8423,7 +8426,7 @@ static void gen_ice(switch_core_session_t *session, switch_media_type_t type, co
 
 	if (!engine->ice_out.cands[0][0].component_id) {
 		engine->ice_out.cands[0][0].component_id = 1;
-		engine->ice_out.cands[0][0].priority = (2^24)*126 + (2^8)*65535 + (2^0)*(256 - engine->ice_out.cands[0][0].component_id);
+		engine->ice_out.cands[0][0].priority = (1<<24)*126 + (1<<8)*65535 + (1<<0)*(256 - engine->ice_out.cands[0][0].component_id);
 	}
 
 	if (!zstr(ip)) {
@@ -9919,12 +9922,8 @@ static void generate_m(switch_core_session_t *session, char *buf, size_t buflen,
 		char tmp1[11] = "";
 		char tmp2[11] = "";
 		char tmp3[11] = "";
-		uint32_t c1 = (2^24)*126 + (2^8)*65535 + (2^0)*(256 - 1);
+		uint32_t c1 = (1<<24)*126 + (1<<8)*65535 + (1<<0)*(256 - 1);
 		uint32_t c2 = c1 - 1;
-
-		//uint32_t c2 = (2^24)*126 + (2^8)*65535 + (2^0)*(256 - 2);
-		//uint32_t c3 = (2^24)*126 + (2^8)*65534 + (2^0)*(256 - 1);
-		//uint32_t c4 = (2^24)*126 + (2^8)*65534 + (2^0)*(256 - 2);
 		ice_t *ice_out;
 
 		tmp1[10] = '\0';
@@ -10341,6 +10340,13 @@ SWITCH_DECLARE(void) switch_core_media_gen_local_sdp(switch_core_session_t *sess
 
 			switch_core_session_get_partner(session, &orig_session);
 
+			if (orig_session && !switch_channel_test_flag(session->channel, CF_ANSWERED)) {
+				switch_core_media_set_smode(smh->session, SWITCH_MEDIA_TYPE_AUDIO,
+											switch_core_session_remote_media_flow(orig_session, SWITCH_MEDIA_TYPE_AUDIO), sdp_type);
+				switch_core_media_set_smode(smh->session, SWITCH_MEDIA_TYPE_VIDEO,
+											switch_core_session_remote_media_flow(orig_session, SWITCH_MEDIA_TYPE_VIDEO), sdp_type);
+			}
+
 			for (i = 0; i < smh->mparams->num_codecs; i++) {
 				const switch_codec_implementation_t *imp = smh->codecs[i];
 				switch_payload_t orig_pt = 0;
@@ -10664,11 +10670,7 @@ SWITCH_DECLARE(void) switch_core_media_gen_local_sdp(switch_core_session_t *sess
 			char tmp1[11] = "";
 			char tmp2[11] = "";
 			char tmp3[11] = "";
-			uint32_t c1 = (2^24)*126 + (2^8)*65535 + (2^0)*(256 - 1);
-			//uint32_t c2 = (2^24)*126 + (2^8)*65535 + (2^0)*(256 - 2);
-			//uint32_t c3 = (2^24)*126 + (2^8)*65534 + (2^0)*(256 - 1);
-			//uint32_t c4 = (2^24)*126 + (2^8)*65534 + (2^0)*(256 - 2);
-
+			uint32_t c1 = (1<<24)*126 + (1<<8)*65535 + (1<<0)*(256 - 1);
 			uint32_t c2 = c1 - 1;
 			uint32_t c3 = c1 - 2;
 			uint32_t c4 = c1 - 3;
@@ -11206,11 +11208,7 @@ SWITCH_DECLARE(void) switch_core_media_gen_local_sdp(switch_core_session_t *sess
 					char tmp1[11] = "";
 					char tmp2[11] = "";
 					char tmp3[11] = "";
-					uint32_t c1 = (2^24)*126 + (2^8)*65535 + (2^0)*(256 - 1);
-					//uint32_t c2 = (2^24)*126 + (2^8)*65535 + (2^0)*(256 - 2);
-					//uint32_t c3 = (2^24)*126 + (2^8)*65534 + (2^0)*(256 - 1);
-					//uint32_t c4 = (2^24)*126 + (2^8)*65534 + (2^0)*(256 - 2);
-
+					uint32_t c1 = (1<<24)*126 + (1<<8)*65535 + (1<<0)*(256 - 1);
 					uint32_t c2 = c1 - 1;
 					uint32_t c3 = c1 - 2;
 					uint32_t c4 = c1 - 3;
@@ -11575,11 +11573,7 @@ SWITCH_DECLARE(void) switch_core_media_gen_local_sdp(switch_core_session_t *sess
 				if (t_engine->ice_out.cands[0][0].ready) {
 					char tmp1[11] = "";
 					char tmp2[11] = "";
-					uint32_t c1 = (2^24)*126 + (2^8)*65535 + (2^0)*(256 - 1);
-					//uint32_t c2 = (2^24)*126 + (2^8)*65535 + (2^0)*(256 - 2);
-					//uint32_t c3 = (2^24)*126 + (2^8)*65534 + (2^0)*(256 - 1);
-					//uint32_t c4 = (2^24)*126 + (2^8)*65534 + (2^0)*(256 - 2);
-
+					uint32_t c1 = (1<<24)*126 + (1<<8)*65535 + (1<<0)*(256 - 1);
 					uint32_t c2 = c1 - 1;
 					uint32_t c3 = c1 - 2;
 					uint32_t c4 = c1 - 3;
@@ -14033,7 +14027,9 @@ SWITCH_DECLARE (void) switch_core_media_recover_session(switch_core_session_t *s
 
 SWITCH_DECLARE(void) switch_core_media_init(void)
 {
-	switch_core_gen_certs(DTLS_SRTP_FNAME ".pem");
+	if (switch_core_check_dtls_pem(DTLS_SRTP_FNAME ".pem") != SWITCH_TRUE) {
+		switch_core_gen_certs(DTLS_SRTP_FNAME ".pem");
+	}
 
 	video_globals.cpu_count = switch_core_cpu_count();
 	video_globals.cur_cpu = 0;
