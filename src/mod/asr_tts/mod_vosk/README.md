@@ -34,4 +34,22 @@ Run the following sample dialplan:
 git clone --branch vosk-fix --single-branch https://github.com/alphacep/libks
 ```
 
-You can create more advanced dealplans with ESL and scripts in various languages. See examples in scripts folder.
+You can create more advanced dialplans with ESL and scripts in various languages. See examples in scripts folder.
+
+!!! ATTENTION In order for ESL to recieve events, make sure that fire_asr_events variable is set to true (false by default).
+The dialplan can look like this:
+
+```
+<include>
+  <context name="default">
+    <extension name="asr_demo">
+        <condition field="destination_number" expression="^.*$">
+          <action application="answer"/>
+          <action application="set" data="fire_asr_events=true"/>
+          <action application="detect_speech" data="vosk default default"/>
+          <action application="sleep" data="10000000"/>
+        </condition>
+    </extension>
+  </context>
+</include>
+```
